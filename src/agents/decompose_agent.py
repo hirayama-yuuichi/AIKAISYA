@@ -6,6 +6,7 @@ import json
 import boto3
 from src.core.policy import get_system_instruction
 from src.core.state import ProjectState, DepartmentOutput
+from src.core.parser import parse_department_output
 
 
 DEPARTMENT_NAME = "製造工程分解部門"
@@ -68,10 +69,7 @@ def run(state: ProjectState) -> ProjectState:
 
     body = json.loads(response["body"].read())
     raw_text = body["content"][0]["text"]
-
-    start = raw_text.find("{")
-    end = raw_text.rfind("}") + 1
-    output: DepartmentOutput = json.loads(raw_text[start:end])
+    output: DepartmentOutput = parse_department_output(raw_text, DEPARTMENT_NAME)
 
     print(f"\n[トレンド確認係] {output['trend_check']['summary']}")
     print(f"[使用量確認係]  {output['cost_check']['notes']}")

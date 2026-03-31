@@ -1,6 +1,6 @@
 """
-AIKAISYA — ドキュメント作成部門
-API仕様書（OpenAPI形式）のドラフトを生成する
+AIKAISYA — 製造工程管理部門
+製造工程分解部門のWBSを受け取り、進捗管理・優先順位・納期予測を行う
 """
 import json
 import boto3
@@ -9,12 +9,14 @@ from src.core.state import ProjectState, DepartmentOutput
 from src.core.parser import parse_department_output
 
 
-DEPARTMENT_NAME = "ドキュメント作成部門"
+DEPARTMENT_NAME = "製造工程管理部門"
 MISSION = """
-あなたはAPI仕様書の作成を担当します。
-入力されたAPI作成依頼を元に、OpenAPI 3.0形式の仕様書ドラフトをJSON形式で作成してください。
-また、トレンド確認係としてこの設計が現在のトレンドに合っているか確認し、
-API使用量確認係として想定リクエスト数とコストを見積もってください。
+あなたはWBS（タスク一覧）をもとに、進捗管理計画を策定します。
+各フェーズの優先順位・依存関係・並行実行可否を整理し、
+スケジュール（ガントチャート的な順序）と納期予測を提示してください。
+トレンド確認係として最新のプロジェクト管理手法を提案し、
+API使用量確認係として管理コスト・リソースを見積もってください。
+また、ボトルネックになりそな工程を特定し、対策を提案してください。
 """
 
 MODEL_ID = "jp.anthropic.claude-haiku-4-5-20251001-v1:0"
@@ -22,34 +24,38 @@ REGION = "ap-northeast-1"
 
 
 def run(state: ProjectState) -> ProjectState:
-    """ドキュメント作成部門の処理"""
+    """製造工程管理部門の処理"""
     print(f"\n{'='*50}")
     print(f"[{DEPARTMENT_NAME}] 開始")
-    print(f"依頼内容: {state['request']}")
     print(f"{'='*50}")
+
+    decompose_result = state.get("decompose_output", {})
+    wbs_full = decompose_result.get("result", "WBSなし") if decompose_result else "WBSなし"
+    # トークン節約のため先頭800文字に絞る
+    wbs = wbs_full[:800] + ("…（以下省略）" if len(wbs_full) > 800 else "")
 
     client = boto3.client("bedrock-runtime", region_name=REGION)
     system_instruction = get_system_instruction(DEPARTMENT_NAME, MISSION)
 
     prompt = f"""
-以下のAPI作成依頼に対して、エンドポイント一覧と説明をまとめてください。
+以下のWBSをもとに、進捗管理計画を策定してください。
 
-【依頼内容】
-{state['request']}
+【WBS】
+{wbs}
 
 必ず以下のJSON形式のみで回答してください（コードブロック不要）：
 {{
   "department_name": "{DEPARTMENT_NAME}",
   "trend_check": {{
-    "summary": "トレンドに関する所見を1文で",
+    "summary": "プロジェクト管理手法のトレンドに関する所見を1文で",
     "is_modern": true
   }},
   "cost_check": {{
     "estimated_tokens": 500,
     "within_budget": true,
-    "notes": "コストに関する所見を1文で"
+    "notes": "管理コスト・リソースの見積もりを1文で"
   }},
-  "result": "エンドポイント一覧をテキストで記述（改行は\\nで表現）",
+  "result": "進捗管理計画（優先順位・スケジュール・ボトルネック対策）をテキストで記述（改行は\\nで表現）",
   "judgment": "承認"
 }}
 """
@@ -71,20 +77,8 @@ def run(state: ProjectState) -> ProjectState:
     print(f"\n[トレンド確認係] {output['trend_check']['summary']}")
     print(f"[使用量確認係]  {output['cost_check']['notes']}")
     print(f"[判定]          {output['judgment']}")
-    print(f"\n--- 仕様書ドラフト ---")
+    print(f"\n--- 進捗管理計画 ---")
     print(output["result"])
 
-    state["document_output"] = output
+    state["manage_output"] = output
     return state
-
-
-if __name__ == "__main__":
-    initial_state: ProjectState = {
-        "request": "ユーザー管理API。ユーザーの登録・取得・更新・削除ができること。",
-        "document_output": None,
-        "decompose_output": None,
-        "manage_output": None,
-        "final_judgment": None,
-        "final_summary": None,
-    }
-    run(initial_state)
