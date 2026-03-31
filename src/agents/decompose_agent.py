@@ -4,12 +4,14 @@ AIKAISYA — 製造工程分解部門
 """
 import json
 import boto3
+from pathlib import Path
 from src.core.policy import get_system_instruction
 from src.core.state import ProjectState, DepartmentOutput
 from src.core.parser import parse_department_output
 
 
 DEPARTMENT_NAME = "製造工程分解部門"
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
 MISSION = """
 あなたはAPI仕様書をもとに、実装タスクをWBS（作業分解構造）として分解します。
 エンドポイントごとに必要な実装ステップを具体的に列挙してください。
@@ -71,11 +73,19 @@ def run(state: ProjectState) -> ProjectState:
     raw_text = body["content"][0]["text"]
     output: DepartmentOutput = parse_department_output(raw_text, DEPARTMENT_NAME)
 
+    # WBSをファイルに保存
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    wbs_text = output["result"].replace("\\n", "\n")
+    (OUTPUT_DIR / "wbs.md").write_text(
+        f"# タスク一覧（WBS）\n\n{wbs_text}",
+        encoding="utf-8"
+    )
+
     print(f"\n[トレンド確認係] {output['trend_check']['summary']}")
     print(f"[使用量確認係]  {output['cost_check']['notes']}")
     print(f"[判定]          {output['judgment']}")
-    print(f"\n--- タスク一覧（WBS）---")
-    print(output["result"])
+    print(f"\n--- タスク一覧（WBS）→ output/wbs.md ---")
+    print(wbs_text)
 
     state["decompose_output"] = output
     return state

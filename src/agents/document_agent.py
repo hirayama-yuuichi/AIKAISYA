@@ -4,12 +4,14 @@ API仕様書（OpenAPI形式）のドラフトを生成する
 """
 import json
 import boto3
+from pathlib import Path
 from src.core.policy import get_system_instruction
 from src.core.state import ProjectState, DepartmentOutput
 from src.core.parser import parse_department_output
 
 
 DEPARTMENT_NAME = "ドキュメント作成部門"
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
 MISSION = """
 あなたはAPI仕様書の作成を担当します。
 入力されたAPI作成依頼を元に、OpenAPI 3.0形式の仕様書ドラフトをJSON形式で作成してください。
@@ -68,11 +70,19 @@ def run(state: ProjectState) -> ProjectState:
     raw_text = body["content"][0]["text"]
     output: DepartmentOutput = parse_department_output(raw_text, DEPARTMENT_NAME)
 
+    # 仕様書をファイルに保存
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    spec_text = output["result"].replace("\\n", "\n")
+    (OUTPUT_DIR / "spec.md").write_text(
+        f"# API仕様書\n\n依頼: {state['request']}\n\n{spec_text}",
+        encoding="utf-8"
+    )
+
     print(f"\n[トレンド確認係] {output['trend_check']['summary']}")
     print(f"[使用量確認係]  {output['cost_check']['notes']}")
     print(f"[判定]          {output['judgment']}")
-    print(f"\n--- 仕様書ドラフト ---")
-    print(output["result"])
+    print(f"\n--- 仕様書ドラフト → output/spec.md ---")
+    print(spec_text)
 
     state["document_output"] = output
     return state
