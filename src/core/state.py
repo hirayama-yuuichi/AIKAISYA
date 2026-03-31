@@ -39,6 +39,7 @@ class ProjectState(TypedDict):
     document_output: Optional[DepartmentOutput]    # ドキュメント作成部門
     decompose_output: Optional[DepartmentOutput]   # 製造工程分解部門
     manage_output: Optional[DepartmentOutput]      # 製造工程管理部門
+    code_output: Optional[DepartmentOutput]        # コード生成部門
 
     # 最終判定
     final_judgment: Optional[str]         # 承認 / 再調整 / 却下

@@ -3,3 +3,4 @@ _1_このフォルダのバックアップ.sh
 __pycache__/
 *.pyc
 *.pyo
+output/
