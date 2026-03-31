@@ -1,0 +1,69 @@
+# AIKAISYA 共通方針 (Layer B: 全エージェント共通 System Instruction)
+# このファイルはすべての部門のAIエージェントが遵守するルールを定義する
+
+version: "1.0"
+updated: "2026-03-31"
+
+# ── API設計基準 ──────────────────────────────────────────
+api:
+  # 認証方式
+  auth:
+    method: "OAuth2.0"
+    token_expiry_minutes: 60
+
+  # 命名規則
+  naming:
+    style: "camelCase"          # フィールド名・パラメータ名
+    endpoint_style: "kebab-case" # URLパス（例: /api/get-user）
+    version_prefix: "/v1"
+
+  # セキュリティ基準
+  security:
+    require_https: true
+    rate_limit_per_minute: 100
+    max_payload_size_mb: 10
+
+  # ドキュメント基準
+  documentation:
+    format: "OpenAPI 3.0"
+    language: "Japanese"        # ドキュメントの記述言語
+
+# ── コスト管理基準 ────────────────────────────────────────
+cost:
+  # LLM API使用量の上限（お試し版）
+  llm:
+    max_tokens_per_request: 4000
+    max_requests_per_run: 20
+    alert_threshold_jpy: 100    # 1実行あたりのコスト上限（円）
+
+  # 利益率基準
+  profit_margin_min_percent: 20
+
+# ── 品質基準 ──────────────────────────────────────────────
+quality:
+  # レスポンスタイム目標
+  response_time_ms: 500
+
+  # 必須チェック項目
+  required_checks:
+    - security
+    - cost
+    - documentation
+
+# ── エージェント共通ルール ────────────────────────────────
+agent:
+  # 出力言語
+  output_language: "Japanese"
+
+  # 各部門が必ず報告すること
+  required_output_fields:
+    - department_name   # 部門名
+    - trend_check       # トレンド確認係の所見
+    - cost_check        # API使用量確認係の所見
+    - result            # 本来の出力
+
+  # 判定基準
+  judgment:
+    pass_label: "承認"
+    hold_label: "再調整"
+    fail_label: "却下"
