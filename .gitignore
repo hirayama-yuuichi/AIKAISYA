@@ -1,2 +1,5 @@
 p0xx_xxx_Vault/
 _1_このフォルダのバックアップ.sh
+__pycache__/
+*.pyc
+*.pyo
